@@ -197,7 +197,18 @@ alias d.....='cd ../../../../../..'
 alias d......='cd ../../../../../../..'
 alias ktag='ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .'
 
-alias kcs='find `pwd` -name "*.[ch]" -o -name "*.cpp" -o -name "*.java" > cscope.files && cscope -Cbk -i cscope.files'
+#alias kcs='find `pwd` -name "*.[ch]" -o -name "*.cpp" -o -name "*.java" > cscope.files && cscope -Cbk -i cscope.files'
+function kcs()
+{
+	echo > cscope.files
+	for dir in "$@"; do
+		fullpath=`realpath $dir`
+		echo $fullpath
+		find $fullpath -name "*.[ch]" -o -name "*.cpp" -o -name "*.java" >> cscope.files
+	done
+
+	cscope -Cbk -i cscope.files
+}
 
 function ksi-files()
 {
