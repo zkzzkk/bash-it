@@ -195,7 +195,7 @@ alias d...='cd ../../../..'
 alias d....='cd ../../../../..'
 alias d.....='cd ../../../../../..'
 alias d......='cd ../../../../../../..'
-alias ktag='ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .'
+alias ktag='ctags -R --c++-kinds=+p --fields=+iaS --extra=+q '
 
 #alias kcs='find `pwd` -name "*.[ch]" -o -name "*.cpp" -o -name "*.java" > cscope.files && cscope -Cbk -i cscope.files'
 function kcs()
@@ -323,10 +323,31 @@ function camlogpull()
 	project=$1
 	output=$2
 
-	dir=camlog-$(date "+%Y%m%d-%H%M%S")
+	dir=$(mktemp -d camlog.XXXXXXXX)
 	echo $dir $project $output
-	adb pull /data/vendor/camera $dir
-	python ~/proj/$project/vendor/qcom/proprietary/chi-cdk/tools/binary_log/merge_text_logs.py -o $output -d $dir
+
+	if [ -d ./$dir ]; then
+		adb shell ls /data/vendor/camera/Camx_OfflineLog* | xargs -I {} adb pull {} $dir/ > /dev/null 2>&1
+		#adb pull /data/vendor/camera $dir
+		python ~/proj/$project/vendor/qcom/proprietary/chi-cdk/tools/binary_log/merge_text_logs.py -o $output -d $dir
+		rm -rf ./$dir
+	fi
+}
+
+function myfetch()
+{
+	if [ "$1" == "-h" ] || [ "$1" == "help" ]; then
+		echo "myfetch remote branch [--unshallow ...]"
+		return
+	fi
+
+	repo=$1
+	branch=$2
+	shift; shift;
+
+	echo "repo=$repo branch=$branch args=$@"
+	echo "git fetch $@ $repo $branch:refs/remotes/$repo/$branch"
+	git fetch $@ $repo $branch:refs/remotes/$repo/$branch
 }
 
 function winpath()
