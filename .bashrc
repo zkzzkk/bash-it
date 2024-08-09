@@ -8,6 +8,18 @@ case $- in
       *) return;;
 esac
 
+if [[ "$KZHANG_BASH_ENV_LOADED" != "true" ]]; then 
+	PATH="$HOME/bin:$PATH"
+	PATH="$HOME/local/bin:$PATH"
+	PATH+=":$HOME/.local/bin"
+	PATH+=":$HOME/tools"
+	PATH+=":$HOME/tools/platform-tools"
+	export LD_LIBRARY_PATH+="$HOME/local/lib"
+	export KZHANG_BASH_ENV_LOADED="true"
+fi
+
+#export TERM="xterm-256color"
+
 # don't put duplicate lines or lines starting with space in the history.
 # See bash(1) for more options
 HISTCONTROL=ignoreboth
@@ -120,7 +132,7 @@ fi
 #=================add by bash-it install=============================
 
 # Path to the bash it configuration
-export BASH_IT="/home/mi/.bash_it"
+export BASH_IT="$HOME/.bash_it"
 
 # Lock and Load a custom theme file
 # location /.bash_it/themes/
@@ -176,8 +188,7 @@ source "$BASH_IT"/bash_it.sh
 
 
 #========== add by K ============================================
-#PATH=~/bin:$PATH
-PATH=$PATH:/home/mi/Downloads/android-studio/bin
+# PATH: the best place is ~/.profile for your per-user PATH setting or /etc/profile for global settings
 
 #xinput --set-prop "pointer:PixArt HP USB Optical Mouse" "Device Accel Constant Deceleration" 1.5
 #xinput --set-prop "pointer:GTech MI wireless mouse" "Device Accel Constant Deceleration" 1.5
@@ -275,7 +286,7 @@ function getadb()
 }
 
 
-alias kag='ag --ignore tuning'
+alias kag='ag -U --ignore tuning'
 
 alias vs='gvim_with_name s'
 alias va='gvim_with_name a'
@@ -287,14 +298,14 @@ alias via='vi_with_name vim a'
 alias vib='vi_with_name vim b'
 alias vic='vi_with_name vim c'
 
+alias fastvim='vim -u ~/vimrc.lite'
+alias fastgvim='gvim -u ~/vimrc.lite'
+
 alias q='exit'
 alias r='repo'
-alias rs='repo sync -fc -q --no-tags'
+alias rs='repo sync -c --no-tags'
 alias ru='repo upload --cbr'
 
-alias si='nohup env LANG=zh_CN.UTF-8 wine "c:/Program Files (x86)/Source Insight 3/Insight3.exe" >/dev/null 2>&1 &'
-alias npp='nohup env LANG=zh_CN.UTF-8 wine "c:/Program Files/Notepad++/notepad++.exe" >/dev/null 2>&1 &'
-alias si4='nohup wine "c:/Program Files (x86)/Source Insight 4.0/sourceinsight4.exe" &'
 alias plantuml='nohup java -DPLANTUML_LIMIT_SIZE=12288 -jar ~/bin/plantuml.jar -gui &'
 
 alias mivpn='/opt/cisco/anyconnect/bin/vpn connect v.mioffice.cn'
@@ -302,21 +313,53 @@ alias vpnui='/opt/cisco/anyconnect/bin/vpnui'
 
 alias zc='fasd_cd -d `pwd`'
 
-alias caml='adb shell cat /vendor/etc/camera/camxoverridesettings.txt'
-function cams()
+export ZK_CAM_SETTING_POSITION=odm
+
+function camlx()
 {
-	adb shell "echo $1 >> /vendor/etc/camera/camxoverridesettings.txt"
-	adb shell cat /vendor/etc/camera/camxoverridesettings.txt | tail -1
+	adb shell cat /$ZK_CAM_SETTING_POSITION/etc/camera/camxoverridesettings$1.txt
+}
+function camsx()
+{
+	adb shell "echo $2 >> /$ZK_CAM_SETTING_POSITION/etc/camera/camxoverridesettings$1.txt"
+	adb shell cat /$ZK_CAM_SETTING_POSITION/etc/camera/camxoverridesettings$1.txt | tail -1
+}
+function camdx()
+{
+	adb shell "sed -i '/$2.*/d' /$ZK_CAM_SETTING_POSITION/etc/camera/camxoverridesettings$1.txt"
+}
+function campullx()
+{
+	adb pull /$ZK_CAM_SETTING_POSITION/etc/camera/camxoverridesettings$1.txt
+}
+function campushx()
+{
+	adb push camxoverridesettings$1.txt /$ZK_CAM_SETTING_POSITION/etc/camera/
 }
 
-function camd()
-{
-	adb shell "sed -i '/$1.*/d' /vendor/etc/camera/camxoverridesettings.txt"
-}
+alias caml='camlx ""'
+alias cams='camsx ""'
+alias camd='camdx ""'
+alias campull='campullx ""'
+alias campush='campushx ""'
+
+alias camlp="camlx OfPro"
+alias camsp="camsx OfPro"
+alias camdp="camdx OfPro"
+alias campullp="campullx OfPro"
+alias campushp="campushx OfPro"
+
+alias camlu="camlx OfUltra"
+alias camsu="camsx OfUltra"
+alias camdu="camdx OfUltra"
+alias campullu="campullx OfUltra"
+alias campushu="campushx OfUltra"
+
 
 function camlogclear()
 {
-	adb shell rm /data/vendor/camera/Camx_OfflineLog*
+	adb shell rm /data/vendor/camera/Camx_OfflineLog* > /dev/null 2>&1
+	adb shell rm /data/vendor/camera/offlinelog/* > /dev/null 2>&1
 }
 function camlogpull()
 {
@@ -332,6 +375,30 @@ function camlogpull()
 		python ~/proj/$project/vendor/qcom/proprietary/chi-cdk/tools/binary_log/merge_text_logs.py -o $output -d $dir
 		rm -rf ./$dir
 	fi
+}
+
+function mypull()
+{
+	adb shell "find `dirname $1` -maxdepth 1 -name `basename $1`" | xargs -I {} adb pull {} ./
+	#adb shell ls $1 | xargs -I {} adb pull {} ./
+}
+
+function pull-img()
+{
+	if [ -z "$1"  ]; then
+		adb shell ls -t /sdcard/DCIM/Camera/* | head -1 | xargs -I {} adb pull {} ./
+	else
+		mypull /sdcard/DCIM/Camera/*$1*
+	fi
+}
+function pull-dump()
+{
+	mypull /data/vendor/camera/$1
+}
+
+function rm-dump()
+{
+	adb shell "find /data/vendor/camera/ -name $1 -exec rm {} \; -printf '%p is deleted\n'"
 }
 
 function myfetch()
@@ -355,5 +422,16 @@ function winpath()
     echo $(pwd)\\$1 | sed 's/\//\\/g' | sed 's/\\home\\mi/z:/'
 }
 
+function cloudsync()
+{
+	if [ -z "$1"  ]; then
+		sudo -S ~/bin/clouddev fs-rm-cache ~/cloud
+	else
+		sudo -S ~/bin/clouddev fs-rm-cache $1
+	fi
+}
+
 set completion-ignore-case on
-export FUSION_PATH=/home/mi/buildtool/fusion/tools
+
+alias notepadpp="playonlinux --run notepad++ "
+alias npp="playonlinux --run notepad++ "
